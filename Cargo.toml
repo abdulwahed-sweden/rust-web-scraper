@@ -1,11 +1,19 @@
 [package]
 name = "rust-web-scraper"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
+
+[[bin]]
+name = "scraper-cli"
+path = "src/main.rs"
+
+[[bin]]
+name = "scraper-web"
+path = "src/web.rs"
 
 [dependencies]
 tokio = { version = "1.42", features = ["full"] }
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.12", features = ["json", "cookies"] }
 scraper = "0.22"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -15,3 +23,11 @@ toml = "0.8"
 chrono = "0.4"
 futures = "0.3"
 url = "2.5"
+actix-web = "4.5"
+actix-files = "0.6"
+actix-cors = "0.7"
+rand = "0.8"
+governor = "0.6"
+regex = "1.10"
+log = "0.4"
+env_logger = "0.11"

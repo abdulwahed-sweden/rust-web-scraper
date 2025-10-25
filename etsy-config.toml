@@ -1,0 +1,22 @@
+# Etsy Scraper Configuration
+# For scraping Etsy product categories
+
+urls = [
+    "https://www.etsy.com/se-en/c/bath-and-beauty/soaps/bath-salts-and-scrubs"
+]
+
+[selectors]
+# Etsy-specific selectors (may need adjustment based on actual HTML)
+title = "h1"
+content = "h3, .v2-listing-card__title"
+links = "a"
+images = "img"
+
+[pagination]
+enabled = true
+next_selector = "a.wt-action-group__item-container[aria-label*='Next'], a[rel='next']"
+max_pages = 5
+
+# Note: Etsy uses dynamic JavaScript rendering
+# For best results, consider using a headless browser approach
+# or the web interface which handles this better

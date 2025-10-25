@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  etsy-scraper:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - RUST_LOG=info
+    volumes:
+      - ./output:/app/output
+    restart: unless-stopped
+    container_name: etsy-scraper-web
+
+networks:
+  default:
+    name: scraper-network
