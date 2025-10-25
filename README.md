@@ -1,9 +1,10 @@
 # Rust Web Scraper
 
-A powerful, feature-rich web scraper built with Rust that supports concurrent scraping, customizable selectors, and comprehensive data extraction.
+A powerful, feature-rich web scraper built with Rust that supports concurrent scraping, automatic pagination, customizable selectors, and comprehensive data extraction.
 
 ## Features
 
+- **Automatic Pagination**: Automatically follow "Next" links and scrape multiple pages recursively
 - **Concurrent Scraping**: Scrape multiple URLs simultaneously for maximum performance
 - **CLI Support**: Command-line interface with multiple options via `clap`
 - **Configuration Files**: Define URLs and selectors in TOML config files
@@ -17,6 +18,7 @@ A powerful, feature-rich web scraper built with Rust that supports concurrent sc
   - Metadata (counts and statistics)
 - **Verbose Mode**: Optional detailed logging
 - **Flexible Selectors**: Customize CSS selectors for any website structure
+- **Smart URL Handling**: Automatically converts relative URLs to absolute
 
 ## Installation
 
@@ -71,6 +73,21 @@ cargo run -- -u https://example.com --verbose
 cargo run -- -u https://example.com -u https://www.rust-lang.org --save --output results --verbose
 ```
 
+### 9. Enable Pagination (Follow "Next" Links)
+```bash
+cargo run -- -u https://books.toscrape.com/catalogue/category/books/mystery_3/index.html --paginate --save
+```
+
+### 10. Pagination with Page Limit
+```bash
+cargo run -- -u https://books.toscrape.com --paginate -m 10 --save --verbose
+```
+
+### 11. Pagination via Configuration File
+```bash
+cargo run -- --config books-config.toml --save
+```
+
 ## Configuration File
 
 Create a `config.toml` file to define URLs and custom selectors:
@@ -119,16 +136,67 @@ links = "nav a, article a"
 images = "div.content img"
 ```
 
+## Pagination Support
+
+The scraper can automatically follow "Next" page links to scrape multiple pages recursively.
+
+### Enabling Pagination via CLI
+
+```bash
+# Enable pagination and scrape up to 10 pages
+cargo run -- -u https://books.toscrape.com --paginate -m 10 --save
+
+# Unlimited pages (until no "Next" link found)
+cargo run -- -u https://books.toscrape.com --paginate --save --verbose
+```
+
+### Enabling Pagination via Configuration
+
+Add a `[pagination]` section to your config file:
+
+```toml
+urls = [
+    "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+]
+
+[selectors]
+title = "h1"
+content = "article.product_pod h3 a"
+links = "a"
+images = "article.product_pod img"
+
+[pagination]
+enabled = true
+next_selector = "li.next a"  # CSS selector for "Next" button
+max_pages = 5                # Optional: limit number of pages
+```
+
+### How Pagination Works
+
+1. **Scrapes Current Page**: Extracts all data using configured selectors
+2. **Finds Next Link**: Searches for "Next" button using `next_selector`
+3. **Converts to Absolute URL**: Handles relative URLs automatically
+4. **Repeats**: Continues until max pages reached or no more "Next" links
+5. **Duplicate Detection**: Tracks visited URLs to prevent infinite loops
+
+### Common Next Selectors
+
+- **books.toscrape.com**: `li.next a`
+- **Generic pagination**: `a.next`, `a[rel="next"]`, `.pagination .next`
+- **Numbered pages**: `a.page-next`, `.pager-next a`
+
 ## Command-Line Options
 
 ```
 Options:
-  -u, --urls <URLS>...   URLs to scrape (can provide multiple)
-  -c, --config <CONFIG>  Path to configuration file
-  -o, --output <OUTPUT>  Output directory for scraped data [default: output]
-  -s, --save             Save output to files
-  -v, --verbose          Verbose output
-  -h, --help             Print help
+  -u, --urls <URLS>...      URLs to scrape (can provide multiple)
+  -c, --config <CONFIG>     Path to configuration file
+  -o, --output <OUTPUT>     Output directory for scraped data [default: output]
+  -s, --save                Save output to files
+  -v, --verbose             Verbose output
+  -p, --paginate            Enable pagination (follow "Next" links)
+  -m, --max-pages <NUMBER>  Maximum pages to scrape per URL (0 = unlimited) [default: 0]
+  -h, --help                Print help
 ```
 
 ## Output Format
@@ -220,6 +288,7 @@ rust-web-scraper/
 - **toml**: Configuration file parsing
 - **chrono**: Timestamp generation
 - **futures**: Concurrent task management
+- **url**: URL parsing and manipulation for pagination
 
 ## Error Handling
 

@@ -44,3 +44,10 @@ images = "img"
 # content = "div.content p, div.content li"
 # links = "nav a, article a"
 # images = "div.content img"
+
+# Pagination Configuration (optional)
+# Uncomment to enable automatic pagination
+# [pagination]
+# enabled = true
+# next_selector = "li.next a"  # CSS selector for "Next" button
+# max_pages = 10               # Maximum pages to scrape (optional)

@@ -1,0 +1,30 @@
+# Configuration for scraping books.toscrape.com with pagination
+#
+# This config extracts book information and automatically follows "Next" links
+
+urls = [
+    "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+]
+
+[selectors]
+# Main page title
+title = "h1"
+
+# Book titles (each book has an h3 > a structure)
+content = "article.product_pod h3 a"
+
+# All links including navigation and book links
+links = "a"
+
+# Book cover images
+images = "article.product_pod img"
+
+[pagination]
+# Enable automatic pagination
+enabled = true
+
+# CSS selector for the "Next" button
+next_selector = "li.next a"
+
+# Maximum number of pages to scrape (optional, remove for unlimited)
+max_pages = 5
