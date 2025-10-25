@@ -1,0 +1,46 @@
+# Rust Web Scraper Configuration File
+#
+# This file defines the URLs to scrape and the CSS selectors to use
+# for extracting data from each page.
+
+# List of URLs to scrape
+urls = [
+    "https://example.com",
+    "https://www.rust-lang.org",
+]
+
+# CSS Selectors Configuration
+[selectors]
+# Selector for the main title (default: "h1")
+title = "h1"
+
+# Selector for content paragraphs (default: "p")
+content = "p"
+
+# Selector for links (optional)
+# Set to empty string or remove to skip link extraction
+links = "a"
+
+# Selector for images (optional)
+# Set to empty string or remove to skip image extraction
+images = "img"
+
+# Example configurations for specific sites:
+
+# For a blog:
+# title = "h1.post-title"
+# content = "div.post-content p"
+# links = "article a"
+# images = "article img"
+
+# For news sites:
+# title = "h1.article-headline"
+# content = "div.article-body p"
+# links = "article a[href]"
+# images = "figure img"
+
+# For documentation:
+# title = "h1#page-title"
+# content = "div.content p, div.content li"
+# links = "nav a, article a"
+# images = "div.content img"
