@@ -8,6 +8,8 @@ use std::sync::{Arc, Mutex};
 struct ScrapeRequest {
     category_url: String,
     max_pages: usize,
+    #[serde(default)]
+    fetch_reviews: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -210,6 +212,18 @@ async fn index() -> Result<HttpResponse> {
                 >
             </div>
 
+            <div class="input-group" style="display: flex; align-items: center; gap: 10px;">
+                <input
+                    type="checkbox"
+                    id="fetchReviews"
+                    name="fetchReviews"
+                    style="width: auto; cursor: pointer;"
+                >
+                <label for="fetchReviews" style="margin: 0; cursor: pointer;">
+                    <span class="emoji">💬</span>Fetch Product Reviews (slower, up to 20 per product)
+                </label>
+            </div>
+
             <button type="submit" class="btn" id="scrapeBtn">
                 <span class="emoji">🚀</span>Start Scraping
             </button>
@@ -239,6 +253,7 @@ async fn index() -> Result<HttpResponse> {
 
             const categoryUrl = document.getElementById('categoryUrl').value;
             const maxPages = parseInt(document.getElementById('maxPages').value);
+            const fetchReviews = document.getElementById('fetchReviews').checked;
 
             // Reset UI
             statusDiv.className = 'status';
@@ -258,7 +273,8 @@ async fn index() -> Result<HttpResponse> {
                     },
                     body: JSON.stringify({
                         category_url: categoryUrl,
-                        max_pages: maxPages
+                        max_pages: maxPages,
+                        fetch_reviews: fetchReviews
                     })
                 });
 
@@ -342,10 +358,14 @@ async fn scrape_api(
     state: web::Data<AppState>,
     req: web::Json<ScrapeRequest>,
 ) -> Result<HttpResponse> {
-    log::info!("Received scrape request for: {}", req.category_url);
+    log::info!(
+        "Received scrape request for: {} (fetch_reviews: {})",
+        req.category_url,
+        req.fetch_reviews
+    );
 
-    // Create scraper
-    let scraper = match EtsyScraper::new(true) {
+    // Create scraper with review fetching option
+    let scraper = match EtsyScraper::with_options(true, req.fetch_reviews) {
         Ok(s) => s,
         Err(e) => {
             return Ok(HttpResponse::Ok().json(ScrapeResponse {

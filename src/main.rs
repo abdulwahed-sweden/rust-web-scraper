@@ -41,6 +41,14 @@ struct Args {
     /// Maximum number of pages to scrape per URL (0 = unlimited)
     #[arg(short = 'm', long, default_value = "0")]
     max_pages: usize,
+
+    /// Etsy category URL to scrape (enables Etsy-specific scraping)
+    #[arg(long)]
+    category_url: Option<String>,
+
+    /// Fetch product reviews (only works with --category-url for Etsy scraping)
+    #[arg(long)]
+    fetch_reviews: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -440,6 +448,48 @@ fn display_results(data: &ScrapedData) {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
+
+    // Handle Etsy-specific scraping if category URL is provided
+    if let Some(ref category_url) = args.category_url {
+        println!("🛍️  Etsy Scraper Mode");
+        println!("Category: {}", category_url);
+        println!("Fetch Reviews: {}", if args.fetch_reviews { "✓ Enabled" } else { "✗ Disabled" });
+        println!("Max Pages: {}", if args.max_pages > 0 { args.max_pages.to_string() } else { "unlimited".to_string() });
+        println!();
+
+        // Create Etsy scraper
+        let scraper = rust_web_scraper::EtsyScraper::with_options(args.verbose, args.fetch_reviews)?;
+
+        // Scrape the category
+        let result = scraper.scrape_category(category_url, args.max_pages).await?;
+
+        // Display summary
+        println!("\n{}", "=".repeat(60));
+        println!("📊 Scraping Results");
+        println!("{}", "=".repeat(60));
+        println!("✓ Products found: {}", result.total_products);
+        println!("✓ Reviews collected: {}", result.total_reviews);
+        println!("✓ Pages scraped: {}", result.summary.pages_scraped);
+        println!("✓ Time taken: {}s", result.summary.time_taken_seconds);
+
+        if let Some(avg_rating) = result.summary.average_rating {
+            println!("✓ Average rating: {:.2}", avg_rating);
+        }
+
+        // Save if requested
+        if args.save {
+            let json = serde_json::to_string_pretty(&result)?;
+            let output_dir = &args.output;
+            fs::create_dir_all(output_dir)?;
+
+            let output_file = output_dir.join("etsy_reviews.json");
+            fs::write(&output_file, json)?;
+
+            println!("\n💾 Saved to: {}", output_file.display());
+        }
+
+        return Ok(());
+    }
 
     // Determine URLs, config, and pagination settings
     let (urls, selector_config, pagination_config) = if let Some(ref config_path) = args.config {

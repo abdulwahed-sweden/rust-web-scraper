@@ -48,10 +48,15 @@ pub struct EtsyScraper {
     client: reqwest::Client,
     rate_limiter: RateLimiter,
     verbose: bool,
+    fetch_reviews: bool,
 }
 
 impl EtsyScraper {
     pub fn new(verbose: bool) -> Result<Self> {
+        Self::with_options(verbose, false)
+    }
+
+    pub fn with_options(verbose: bool, fetch_reviews: bool) -> Result<Self> {
         let client = reqwest::Client::builder()
             .cookie_store(true)
             .timeout(std::time::Duration::from_secs(30))
@@ -61,6 +66,7 @@ impl EtsyScraper {
             client,
             rate_limiter: RateLimiter::default(),
             verbose,
+            fetch_reviews,
         })
     }
 
@@ -245,9 +251,35 @@ impl EtsyScraper {
         // Extract image URL
         let image_url = self.extract_attr(&document, &["img"], "src", base_url);
 
-        // For now, reviews are empty - would need to visit product page
-        // This keeps the initial scraping fast
-        let reviews = Vec::new();
+        // Fetch reviews if enabled
+        let reviews = if self.fetch_reviews {
+            // Extract listing ID from product URL
+            if let Some(listing_id) = crate::etsy_reviews::extract_listing_id(&product_url) {
+                match crate::etsy_reviews::fetch_reviews(
+                    &self.client,
+                    &listing_id,
+                    &self.rate_limiter,
+                    self.verbose,
+                )
+                .await
+                {
+                    Ok(reviews) => reviews,
+                    Err(e) => {
+                        if self.verbose {
+                            println!("        ⚠ Failed to fetch reviews: {}", e);
+                        }
+                        Vec::new()
+                    }
+                }
+            } else {
+                if self.verbose {
+                    println!("        ⚠ Could not extract listing ID from URL: {}", product_url);
+                }
+                Vec::new()
+            }
+        } else {
+            Vec::new()
+        };
 
         Ok(EtsyProduct {
             name: name.trim().to_string(),

@@ -32,16 +32,45 @@ cargo run --bin scraper-cli -- \
   -u https://example.com \
   --save
 
-# Etsy-specific (Note: Limited without browser automation)
+# Etsy-specific with new CLI support
 cargo run --bin scraper-cli -- \
-  -u "https://www.etsy.com/se-en/c/bath-and-beauty/soaps/bath-salts-and-scrubs" \
-  --paginate \
+  --category-url "https://www.etsy.com/se-en/c/bath-and-beauty/soaps/bath-salts-and-scrubs" \
   --max-pages 5 \
+  --save \
+  --verbose
+
+# Etsy with review extraction (experimental)
+cargo run --bin scraper-cli -- \
+  --category-url "https://www.etsy.com/se-en/c/bath-and-beauty/soaps/bath-salts-and-scrubs" \
+  --max-pages 3 \
+  --fetch-reviews \
   --save \
   --verbose
 ```
 
 ## 🛍️ Etsy Scraping Examples
+
+### New: Review Extraction Support
+
+The scraper now includes experimental review extraction:
+
+```bash
+# With review fetching (slower, ~30s for 50 products)
+cargo run --bin scraper-cli -- \
+  --category-url "https://www.etsy.com/se-en/c/bath-and-beauty/soaps" \
+  --fetch-reviews \
+  --max-pages 2 \
+  --save \
+  --verbose
+
+# Without reviews (faster, ~3s for 50 products)
+cargo run --bin scraper-cli -- \
+  --category-url "https://www.etsy.com/se-en/c/bath-and-beauty/soaps" \
+  --max-pages 2 \
+  --save
+```
+
+**Note**: Review extraction currently returns empty results due to Etsy API restrictions. See [REVIEW_EXTRACTION.md](REVIEW_EXTRACTION.md) for details and alternative solutions.
 
 ### Web Interface Method (Recommended)
 
