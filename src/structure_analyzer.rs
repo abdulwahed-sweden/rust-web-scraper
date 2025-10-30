@@ -245,9 +245,10 @@ impl StructureAnalyzer {
         let score = self.calculate_score(&stats, &section_type);
         let confidence = self.calculate_confidence(&stats, &section_type);
 
-        // Generate preview (first 200 chars)
-        let preview = if text.len() > 200 {
-            format!("{}...", &text[..200])
+        // Generate preview (first 200 chars, respecting UTF-8 boundaries)
+        let preview = if text.chars().count() > 200 {
+            let truncated: String = text.chars().take(200).collect();
+            format!("{}...", truncated)
         } else {
             text.to_string()
         };

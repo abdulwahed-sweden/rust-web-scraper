@@ -5,6 +5,8 @@ let currentMode = 'scrape';
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     loadHistory();
+    loadProfiles();
+    loadProfileStats();
 });
 
 // Mode Switching
@@ -375,6 +377,10 @@ function displayAnalysis(analysis) {
     const analysisSection = document.getElementById('analysisSection');
     analysisSection.style.display = 'block';
 
+    // Reload profiles (analysis auto-saves them)
+    loadProfiles();
+    loadProfileStats();
+
     // Display stats
     const recommendations = analysis.recommendations;
     const statsHtml = `
@@ -571,4 +577,132 @@ function applyToScraper() {
 
     // Scroll to scrape section
     document.querySelector('.config-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Profile Management Functions
+
+async function loadProfiles() {
+    try {
+        const response = await fetch('/api/profiles');
+        const profiles = await response.json();
+
+        const profilesList = document.getElementById('profilesList');
+
+        if (profiles.length === 0) {
+            profilesList.innerHTML = '<p class="empty-state">No learned profiles yet. Analyze websites to build your profile library!</p>';
+            return;
+        }
+
+        const profilesHtml = profiles.map((profile) => `
+            <div class="profile-item" onclick="applyProfile('${profile.id}')">
+                <div class="profile-header">
+                    <strong>🌐 ${profile.domain}</strong>
+                    <span class="profile-confidence" style="background: ${getConfidenceBadgeColor(profile.confidence)}">
+                        ${(profile.confidence * 100).toFixed(0)}% confident
+                    </span>
+                </div>
+                <div class="profile-details">
+                    <span class="profile-mode">${profile.extraction_mode}</span>
+                    <span>Used: ${profile.use_count} times</span>
+                    <span>Success: ${(profile.success_rate * 100).toFixed(0)}%</span>
+                    <span class="profile-time">${timeAgo(profile.last_used)}</span>
+                </div>
+                <div class="profile-selectors">
+                    ${profile.main_content_selector ? `<code>${profile.main_content_selector}</code>` : ''}
+                </div>
+                <button class="btn-delete" onclick="deleteProfile(event, '${profile.id}')">🗑️</button>
+            </div>
+        `).join('');
+
+        profilesList.innerHTML = profilesHtml;
+    } catch (error) {
+        console.error('Failed to load profiles:', error);
+    }
+}
+
+async function loadProfileStats() {
+    try {
+        const response = await fetch('/api/profiles/stats');
+        const stats = await response.json();
+
+        const statsHtml = `
+            ${stats.total_profiles} profiles |
+            ${stats.total_uses} uses |
+            Avg confidence: ${(stats.avg_confidence * 100).toFixed(0)}%
+        `;
+
+        document.getElementById('profileStats').innerHTML = statsHtml;
+    } catch (error) {
+        console.error('Failed to load profile stats:', error);
+        document.getElementById('profileStats').innerHTML = 'Stats unavailable';
+    }
+}
+
+async function applyProfile(profileId) {
+    try {
+        const response = await fetch(`/api/profiles/${profileId}`);
+        const profile = await response.json();
+
+        if (profile.error) {
+            showError('Profile not found');
+            return;
+        }
+
+        // Switch to scrape mode
+        switchMode('scrape');
+
+        // Create selectors from profile
+        const selectors = {
+            title: [profile.title_selector || "h1"],
+            content: [profile.main_content_selector],
+            links: ["a[href]"],
+            images: ["img[src]"],
+            metadata: ["meta[name='description']"]
+        };
+
+        if (profile.comments_selector) {
+            selectors.comments = [profile.comments_selector];
+        }
+
+        document.getElementById('customSelectors').value = JSON.stringify(selectors, null, 2);
+
+        showSuccess(`✨ Applied profile for ${profile.domain}`);
+    } catch (error) {
+        showError(`Failed to apply profile: ${error.message}`);
+    }
+}
+
+async function deleteProfile(event, profileId) {
+    event.stopPropagation();
+
+    if (!confirm('Delete this profile?')) {
+        return;
+    }
+
+    try {
+        await fetch(`/api/profiles/${profileId}`, { method: 'DELETE' });
+        await loadProfiles();
+        await loadProfileStats();
+        showSuccess('Profile deleted');
+    } catch (error) {
+        showError(`Failed to delete profile: ${error.message}`);
+    }
+}
+
+function getConfidenceBadgeColor(confidence) {
+    if (confidence >= 0.8) return '#10b981';
+    if (confidence >= 0.6) return '#3b82f6';
+    if (confidence >= 0.4) return '#f59e0b';
+    return '#ef4444';
+}
+
+function timeAgo(timestamp) {
+    const now = new Date();
+    const time = new Date(timestamp);
+    const seconds = Math.floor((now - time) / 1000);
+
+    if (seconds < 60) return 'just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return `${Math.floor(seconds / 86400)}d ago`;
 }

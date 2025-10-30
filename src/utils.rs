@@ -39,6 +39,23 @@ impl Default for RateLimiter {
     }
 }
 
+/// Normalize URL by removing fragments and trailing slashes
+pub fn normalize_url(url: &str) -> String {
+    let mut normalized = url.trim().to_string();
+
+    // Remove fragment (#)
+    if let Some(pos) = normalized.find('#') {
+        normalized.truncate(pos);
+    }
+
+    // Remove trailing slash
+    if normalized.ends_with('/') && normalized.len() > 1 {
+        normalized.pop();
+    }
+
+    normalized
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

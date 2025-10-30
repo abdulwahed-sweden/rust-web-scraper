@@ -4,12 +4,16 @@
 // rate limiting, and support for pagination.
 
 pub mod auto_selectors;
+pub mod deep_scraper;
+pub mod learning_profile;
 pub mod scraper;
 pub mod structure_analyzer;
 pub mod utils;
 
 // Re-export main types for convenience
 pub use auto_selectors::{AutoSelectors, DetectedContent, ImageData, LinkData, SelectorDetector};
+pub use deep_scraper::{DeepScraper, DeepScrapeConfig, DeepScrapeResult, CrawlStatus, CrawlNode};
+pub use learning_profile::{ProfileDatabase, SiteProfile, ProfileStats};
 pub use scraper::{ScrapingConfig, ScrapingResult, ScrapingSession, WebScraper};
 pub use structure_analyzer::{
     StructureAnalysis, StructureAnalyzer, Section, SectionType,

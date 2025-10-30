@@ -2,6 +2,7 @@ use actix_web::{web, HttpResponse, Result};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
+use crate::learning_profile::{ProfileDatabase, SiteProfile};
 use crate::scraper::{ScrapingConfig, ScrapingSession, WebScraper};
 use crate::structure_analyzer::{StructureAnalysis, StructureAnalyzer};
 use crate::utils::get_random_user_agent;
@@ -9,6 +10,7 @@ use crate::utils::get_random_user_agent;
 #[derive(Clone)]
 pub struct AppState {
     pub sessions: Arc<Mutex<Vec<ScrapingSession>>>,
+    pub profiles: Arc<Mutex<ProfileDatabase>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -149,7 +151,117 @@ pub struct AnalyzeResponse {
     pub analysis: Option<StructureAnalysis>,
 }
 
-pub async fn analyze_handler(req: web::Json<AnalyzeRequest>) -> Result<HttpResponse> {
+// Profile Management API
+
+pub async fn get_profiles(state: web::Data<AppState>) -> Result<HttpResponse> {
+    let profiles_guard = state.profiles.lock().unwrap();
+    match profiles_guard.get_all() {
+        Ok(profiles) => Ok(HttpResponse::Ok().json(profiles)),
+        Err(e) => {
+            log::error!("Failed to get profiles: {}", e);
+            Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": format!("Failed to retrieve profiles: {}", e)
+            })))
+        }
+    }
+}
+
+pub async fn get_profile(
+    state: web::Data<AppState>,
+    path: web::Path<String>,
+) -> Result<HttpResponse> {
+    let id = path.into_inner();
+    let profiles = state.profiles.lock().unwrap();
+
+    match profiles.get_by_id(&id) {
+        Ok(Some(profile)) => Ok(HttpResponse::Ok().json(profile)),
+        Ok(None) => Ok(HttpResponse::NotFound().json(serde_json::json!({
+            "error": "Profile not found"
+        }))),
+        Err(e) => {
+            log::error!("Failed to get profile: {}", e);
+            Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": format!("Failed to retrieve profile: {}", e)
+            })))
+        }
+    }
+}
+
+pub async fn get_profile_by_domain(
+    state: web::Data<AppState>,
+    path: web::Path<String>,
+) -> Result<HttpResponse> {
+    let domain = path.into_inner();
+    let profiles = state.profiles.lock().unwrap();
+
+    match profiles.get_by_domain(&domain) {
+        Ok(Some(profile)) => Ok(HttpResponse::Ok().json(profile)),
+        Ok(None) => Ok(HttpResponse::NotFound().json(serde_json::json!({
+            "error": "No profile found for domain"
+        }))),
+        Err(e) => {
+            log::error!("Failed to get profile by domain: {}", e);
+            Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": format!("Failed to retrieve profile: {}", e)
+            })))
+        }
+    }
+}
+
+pub async fn delete_profile(
+    state: web::Data<AppState>,
+    path: web::Path<String>,
+) -> Result<HttpResponse> {
+    let id = path.into_inner();
+    let profiles = state.profiles.lock().unwrap();
+
+    match profiles.delete(&id) {
+        Ok(_) => Ok(HttpResponse::Ok().json(serde_json::json!({
+            "message": "Profile deleted successfully"
+        }))),
+        Err(e) => {
+            log::error!("Failed to delete profile: {}", e);
+            Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": format!("Failed to delete profile: {}", e)
+            })))
+        }
+    }
+}
+
+pub async fn get_profile_stats(state: web::Data<AppState>) -> Result<HttpResponse> {
+    let profiles = state.profiles.lock().unwrap();
+
+    match profiles.get_stats() {
+        Ok(stats) => Ok(HttpResponse::Ok().json(stats)),
+        Err(e) => {
+            log::error!("Failed to get stats: {}", e);
+            Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": format!("Failed to retrieve stats: {}", e)
+            })))
+        }
+    }
+}
+
+pub async fn clear_profiles(state: web::Data<AppState>) -> Result<HttpResponse> {
+    let profiles = state.profiles.lock().unwrap();
+
+    match profiles.clear_all() {
+        Ok(_) => Ok(HttpResponse::Ok().json(serde_json::json!({
+            "message": "All profiles cleared successfully"
+        }))),
+        Err(e) => {
+            log::error!("Failed to clear profiles: {}", e);
+            Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": format!("Failed to clear profiles: {}", e)
+            })))
+        }
+    }
+}
+
+pub async fn analyze_handler(
+    state: web::Data<AppState>,
+    req: web::Json<AnalyzeRequest>
+) -> Result<HttpResponse> {
     log::info!("Received structure analysis request for: {}", req.url);
 
     // Fetch the page
@@ -201,6 +313,25 @@ pub async fn analyze_handler(req: web::Json<AnalyzeRequest>) -> Result<HttpRespo
         analysis.recommendations.confidence_level
     );
 
+    // Auto-save profile if confidence is high enough
+    if analysis.recommendations.best_main_content.is_some() {
+        let confidence_threshold = 0.5;
+        let top_score = analysis.sections.first().map(|s| s.score).unwrap_or(0.0);
+
+        if top_score >= confidence_threshold {
+            let profiles = state.profiles.lock().unwrap();
+            match profiles.save_from_analysis(&analysis) {
+                Ok(profile) => {
+                    log::info!("Auto-saved profile for {} (confidence: {:.2})",
+                        profile.domain, profile.confidence);
+                }
+                Err(e) => {
+                    log::warn!("Failed to auto-save profile: {}", e);
+                }
+            }
+        }
+    }
+
     Ok(HttpResponse::Ok().json(AnalyzeResponse {
         success: true,
         message: format!(
@@ -208,5 +339,97 @@ pub async fn analyze_handler(req: web::Json<AnalyzeRequest>) -> Result<HttpRespo
             analysis.sections.len()
         ),
         analysis: Some(analysis),
+    }))
+}
+
+// Deep Scraping Handlers
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeepScrapeRequest {
+    pub start_urls: Vec<String>,
+    #[serde(default = "default_depth")]
+    pub max_depth: usize,
+    #[serde(default = "default_max_pages")]
+    pub max_pages: usize,
+    #[serde(default = "default_stay_in_domain")]
+    pub stay_in_domain: bool,
+    #[serde(default)]
+    pub stay_in_subdomain: bool,
+    #[serde(default)]
+    pub include_patterns: Vec<String>,
+    #[serde(default = "default_exclude_patterns")]
+    pub exclude_patterns: Vec<String>,
+    #[serde(default = "default_rate_limit")]
+    pub rate_limit: f64,
+    #[serde(default)]
+    pub custom_selectors: Option<crate::auto_selectors::AutoSelectors>,
+    #[serde(default = "default_filter_navigation")]
+    pub filter_navigation: bool,
+    #[serde(default = "default_min_content_length")]
+    pub min_content_length: usize,
+}
+
+fn default_depth() -> usize { 2 }
+fn default_max_pages() -> usize { 50 }
+fn default_stay_in_domain() -> bool { true }
+fn default_filter_navigation() -> bool { true }
+fn default_min_content_length() -> usize { 200 }
+fn default_exclude_patterns() -> Vec<String> {
+    vec![
+        r"\.pdf$".to_string(),
+        r"\.zip$".to_string(),
+        r"\.jpg$".to_string(),
+        r"\.png$".to_string(),
+        r"\.gif$".to_string(),
+        r"\#.*$".to_string(),
+    ]
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeepScrapeResponse {
+    pub success: bool,
+    pub message: String,
+    pub result: Option<crate::deep_scraper::DeepScrapeResult>,
+}
+
+pub async fn deep_scrape_handler(
+    req: web::Json<DeepScrapeRequest>,
+) -> Result<HttpResponse> {
+    log::info!("Received deep scrape request: {} start URLs, max depth: {}",
+        req.start_urls.len(), req.max_depth);
+
+    // Create config
+    let config = crate::deep_scraper::DeepScrapeConfig {
+        start_urls: req.start_urls.clone(),
+        max_depth: req.max_depth,
+        max_pages: req.max_pages,
+        stay_in_domain: req.stay_in_domain,
+        stay_in_subdomain: req.stay_in_subdomain,
+        include_patterns: req.include_patterns.clone(),
+        exclude_patterns: req.exclude_patterns.clone(),
+        rate_limit: req.rate_limit,
+        custom_selectors: req.custom_selectors.clone(),
+        filter_navigation: req.filter_navigation,
+        min_content_length: req.min_content_length,
+    };
+
+    // Create deep scraper
+    let mut scraper = crate::deep_scraper::DeepScraper::new(config);
+
+    // Execute deep scrape
+    let result = scraper.scrape().await;
+
+    let success = result.status == crate::deep_scraper::CrawlStatus::Completed ||
+                 result.status == crate::deep_scraper::CrawlStatus::PartiallyCompleted;
+
+    Ok(HttpResponse::Ok().json(DeepScrapeResponse {
+        success,
+        message: format!(
+            "Deep scrape {}: {} pages crawled, {} links discovered",
+            if success { "completed" } else { "failed" },
+            result.total_pages_crawled,
+            result.total_links_discovered
+        ),
+        result: Some(result),
     }))
 }
