@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex};
 mod api;
 mod auto_selectors;
 mod scraper;
+mod structure_analyzer;
 mod utils;
 
 use api::AppState;
@@ -44,6 +45,7 @@ async fn main() -> std::io::Result<()> {
             // API routes
             .route("/api/health", web::get().to(api::health_check))
             .route("/api/scrape", web::post().to(api::scrape_handler))
+            .route("/api/analyze", web::post().to(api::analyze_handler))
             .route("/api/sessions", web::get().to(api::get_sessions))
             .route("/api/sessions", web::delete().to(api::clear_sessions))
             .route("/api/sessions/{id}", web::get().to(api::get_session))

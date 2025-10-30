@@ -15,17 +15,29 @@
 
         <main>
             <section class="config-section">
-                <h2>Scraping Configuration</h2>
-
-                <div class="form-group">
-                    <label for="urls">URLs to Scrape</label>
-                    <textarea
-                        id="urls"
-                        rows="4"
-                        placeholder="https://example.com&#10;https://another-site.com&#10;(one URL per line)"
-                    ></textarea>
-                    <small>Enter one or more URLs, one per line</small>
+                <!-- Mode Selector -->
+                <div class="mode-selector">
+                    <button class="mode-btn active" onclick="switchMode('scrape')">
+                        🚀 Scrape
+                    </button>
+                    <button class="mode-btn" onclick="switchMode('analyze')">
+                        🔍 Analyze Structure
+                    </button>
                 </div>
+
+                <!-- Scrape Mode -->
+                <div id="scrapeMode" class="mode-content">
+                    <h2>Scraping Configuration</h2>
+
+                    <div class="form-group">
+                        <label for="urls">URLs to Scrape</label>
+                        <textarea
+                            id="urls"
+                            rows="4"
+                            placeholder="https://example.com&#10;https://another-site.com&#10;(one URL per line)"
+                        ></textarea>
+                        <small>Enter one or more URLs, one per line</small>
+                    </div>
 
                 <div class="form-row">
                     <div class="form-group">
@@ -66,10 +78,72 @@
                     </div>
                 </details>
 
-                <button id="scrapeBtn" class="btn-primary" onclick="startScraping()">
-                    <span id="btnText">🚀 Start Scraping</span>
-                    <span id="btnSpinner" class="spinner" style="display: none;"></span>
-                </button>
+                    <button id="scrapeBtn" class="btn-primary" onclick="startScraping()">
+                        <span id="btnText">🚀 Start Scraping</span>
+                        <span id="btnSpinner" class="spinner" style="display: none;"></span>
+                    </button>
+                </div>
+
+                <!-- Analyze Mode -->
+                <div id="analyzeMode" class="mode-content" style="display: none;">
+                    <h2>Structure Analysis</h2>
+
+                    <div class="form-group">
+                        <label for="analyzeUrl">URL to Analyze</label>
+                        <input
+                            type="text"
+                            id="analyzeUrl"
+                            placeholder="https://example.com"
+                        >
+                        <small>Intelligent DOM structure detection with scoring</small>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="minContentLength">Min Content Length</label>
+                            <input type="number" id="minContentLength" value="200" min="50" max="1000">
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="detectComments" checked>
+                                Detect Comments
+                            </label>
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="debugMode">
+                                Debug Mode
+                            </label>
+                        </div>
+                    </div>
+
+                    <button id="analyzeBtn" class="btn-primary" onclick="analyzeStructure()">
+                        <span id="analyzeBtnText">🔍 Analyze Structure</span>
+                        <span id="analyzeBtnSpinner" class="spinner" style="display: none;"></span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Structure Analysis Results -->
+            <section id="analysisSection" class="results-section" style="display: none;">
+                <h2>Structure Analysis</h2>
+
+                <div id="analysisMessage" class="status-message"></div>
+
+                <div id="analysisStats" class="stats-grid"></div>
+
+                <div id="analysisContent" class="results-content"></div>
+
+                <div class="action-buttons">
+                    <button class="btn-secondary" onclick="downloadAnalysis()">
+                        💾 Download Analysis
+                    </button>
+                    <button class="btn-secondary" onclick="applyToScraper()">
+                        ✨ Use Best Selectors
+                    </button>
+                </div>
             </section>
 
             <section id="resultsSection" class="results-section" style="display: none;">

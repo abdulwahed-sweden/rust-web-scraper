@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
 use crate::scraper::{ScrapingConfig, ScrapingSession, WebScraper};
+use crate::structure_analyzer::{StructureAnalysis, StructureAnalyzer};
+use crate::utils::get_random_user_agent;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -125,4 +127,86 @@ pub async fn clear_sessions(state: web::Data<AppState>) -> Result<HttpResponse> 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "message": "All sessions cleared"
     })))
+}
+
+// Structure Analysis API
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AnalyzeRequest {
+    pub url: String,
+    #[serde(default)]
+    pub min_content_length: Option<usize>,
+    #[serde(default)]
+    pub detect_comments: bool,
+    #[serde(default)]
+    pub debug_mode: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AnalyzeResponse {
+    pub success: bool,
+    pub message: String,
+    pub analysis: Option<StructureAnalysis>,
+}
+
+pub async fn analyze_handler(req: web::Json<AnalyzeRequest>) -> Result<HttpResponse> {
+    log::info!("Received structure analysis request for: {}", req.url);
+
+    // Fetch the page
+    let user_agent = get_random_user_agent();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| {
+            log::error!("Failed to create HTTP client: {}", e);
+            actix_web::error::ErrorInternalServerError(e)
+        })?;
+
+    let response = client
+        .get(&req.url)
+        .header("User-Agent", user_agent)
+        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+        .send()
+        .await
+        .map_err(|e| {
+            log::error!("Failed to fetch URL: {}", e);
+            actix_web::error::ErrorBadRequest(format!("Failed to fetch URL: {}", e))
+        })?;
+
+    if !response.status().is_success() {
+        return Ok(HttpResponse::Ok().json(AnalyzeResponse {
+            success: false,
+            message: format!("HTTP error: {}", response.status()),
+            analysis: None,
+        }));
+    }
+
+    let html = response.text().await.map_err(|e| {
+        log::error!("Failed to read response body: {}", e);
+        actix_web::error::ErrorInternalServerError(e)
+    })?;
+
+    // Analyze structure
+    let analyzer = if let Some(min_len) = req.min_content_length {
+        StructureAnalyzer::with_options(min_len, req.detect_comments, req.debug_mode)
+    } else {
+        StructureAnalyzer::new()
+    };
+
+    let analysis = analyzer.analyze(&html, &req.url);
+
+    log::info!(
+        "Analysis complete: {} sections found, confidence: {:?}",
+        analysis.sections.len(),
+        analysis.recommendations.confidence_level
+    );
+
+    Ok(HttpResponse::Ok().json(AnalyzeResponse {
+        success: true,
+        message: format!(
+            "Successfully analyzed structure: {} sections found",
+            analysis.sections.len()
+        ),
+        analysis: Some(analysis),
+    }))
 }

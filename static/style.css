@@ -58,6 +58,54 @@ section {
     box-shadow: var(--shadow);
 }
 
+.mode-selector {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    padding: 5px;
+    background: var(--background);
+    border-radius: 8px;
+}
+
+.mode-btn {
+    flex: 1;
+    padding: 12px 20px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: var(--text-secondary);
+}
+
+.mode-btn:hover {
+    background: var(--surface);
+    color: var(--text-primary);
+}
+
+.mode-btn.active {
+    background: var(--primary-color);
+    color: white;
+    box-shadow: var(--shadow);
+}
+
+.mode-content {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 h2 {
     font-size: 1.5rem;
     margin-bottom: 20px;
@@ -380,6 +428,32 @@ footer a:hover {
     text-decoration: underline;
 }
 
+.badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: white;
+}
+
+.stat-mini {
+    background: var(--background);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+code {
+    background: var(--background);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    color: var(--secondary-color);
+}
+
 @media (max-width: 768px) {
     header h1 {
         font-size: 2rem;
@@ -395,5 +469,9 @@ footer a:hover {
 
     .stats-grid {
         grid-template-columns: 1fr;
+    }
+
+    .mode-selector {
+        flex-direction: column;
     }
 }
