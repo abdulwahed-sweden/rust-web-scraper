@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rust Web Scraper</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🕷️ Rust Web Scraper</h1>
+            <p class="subtitle">Intelligent web scraping with automatic content detection</p>
+        </header>
+
+        <main>
+            <section class="config-section">
+                <h2>Scraping Configuration</h2>
+
+                <div class="form-group">
+                    <label for="urls">URLs to Scrape</label>
+                    <textarea
+                        id="urls"
+                        rows="4"
+                        placeholder="https://example.com&#10;https://another-site.com&#10;(one URL per line)"
+                    ></textarea>
+                    <small>Enter one or more URLs, one per line</small>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enablePagination">
+                            Enable Pagination
+                        </label>
+                        <small>Automatically follow "Next" links</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="maxPages">Max Pages (0 = unlimited)</label>
+                        <input type="number" id="maxPages" value="0" min="0" max="100">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="rateLimit">Rate Limit (requests/sec)</label>
+                        <input type="number" id="rateLimit" value="2" min="0.5" max="10" step="0.5">
+                    </div>
+                </div>
+
+                <details class="advanced-options">
+                    <summary>Advanced: Custom Selectors (Optional)</summary>
+                    <div class="form-group">
+                        <label for="customSelectors">Custom Selectors (JSON or TOML)</label>
+                        <textarea
+                            id="customSelectors"
+                            rows="8"
+                            placeholder='{
+  "title": ["h1", "h2", "title"],
+  "content": ["article", "main", "p"],
+  "links": ["a[href]"],
+  "images": ["img[src]"],
+  "metadata": ["meta[name=\'description\']"]
+}'
+                        ></textarea>
+                        <small>Leave empty to use automatic selector detection</small>
+                    </div>
+                </details>
+
+                <button id="scrapeBtn" class="btn-primary" onclick="startScraping()">
+                    <span id="btnText">🚀 Start Scraping</span>
+                    <span id="btnSpinner" class="spinner" style="display: none;"></span>
+                </button>
+            </section>
+
+            <section id="resultsSection" class="results-section" style="display: none;">
+                <h2>Results</h2>
+
+                <div id="statusMessage" class="status-message"></div>
+
+                <div id="stats" class="stats-grid"></div>
+
+                <div id="resultsContent" class="results-content"></div>
+
+                <div class="action-buttons">
+                    <button class="btn-secondary" onclick="downloadResults()">
+                        💾 Download JSON
+                    </button>
+                    <button class="btn-secondary" onclick="clearResults()">
+                        🗑️ Clear Results
+                    </button>
+                </div>
+            </section>
+
+            <section id="historySection" class="history-section">
+                <h2>Scraping History</h2>
+                <div id="historyList" class="history-list">
+                    <p class="empty-state">No scraping sessions yet. Start scraping to see history.</p>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Powered by Rust 🦀 | <a href="https://github.com/anthropics/rust-web-scraper" target="_blank">GitHub</a></p>
+        </footer>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

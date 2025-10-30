@@ -1,10 +1,13 @@
-// Shared library for the web scraper
-pub mod etsy;
-pub mod etsy_reviews;
-pub mod rate_limit;
-pub mod user_agents;
+// Rust Web Scraper Library
+//
+// A powerful, intelligent web scraping library with automatic content detection,
+// rate limiting, and support for pagination.
 
-pub use etsy::*;
-pub use etsy_reviews::*;
-pub use rate_limit::*;
-pub use user_agents::*;
+pub mod auto_selectors;
+pub mod scraper;
+pub mod utils;
+
+// Re-export main types for convenience
+pub use auto_selectors::{AutoSelectors, DetectedContent, ImageData, LinkData, SelectorDetector};
+pub use scraper::{ScrapingConfig, ScrapingResult, ScrapingSession, WebScraper};
+pub use utils::{get_random_user_agent, RateLimiter, USER_AGENTS};

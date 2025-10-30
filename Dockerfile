@@ -9,8 +9,8 @@ COPY Cargo.toml Cargo.lock ./
 # Copy source code
 COPY src ./src
 
-# Build release binary for web server
-RUN cargo build --release --bin scraper-web
+# Build release binary
+RUN cargo build --release
 
 # Runtime stage
 FROM debian:bookworm-slim
@@ -23,8 +23,9 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy binary from builder
-COPY --from=builder /app/target/release/scraper-web /usr/local/bin/scraper-web
+# Copy binary and static files from builder
+COPY --from=builder /app/target/release/rust-web-scraper /usr/local/bin/rust-web-scraper
+COPY static ./static
 
 # Create output directory
 RUN mkdir -p /app/output
@@ -34,6 +35,8 @@ EXPOSE 8080
 
 # Set environment
 ENV RUST_LOG=info
+ENV HOST=0.0.0.0
+ENV PORT=8080
 
 # Run the web server
-CMD ["scraper-web"]
+CMD ["rust-web-scraper"]

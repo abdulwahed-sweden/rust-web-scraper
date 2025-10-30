@@ -1,24 +1,25 @@
-# Rust Web Scraper
+# 🕷️ Rust Web Scraper
 
-A powerful, feature-rich web scraper built with Rust that supports concurrent scraping, automatic pagination, customizable selectors, and comprehensive data extraction.
+A powerful, intelligent web scraping tool with **automatic content detection**, modern web interface, and RESTful API. Built with Rust, Actix-Web, and designed for both browser and desktop (Tauri) use.
 
-## Features
+## ✨ Features
 
-- **Automatic Pagination**: Automatically follow "Next" links and scrape multiple pages recursively
-- **Concurrent Scraping**: Scrape multiple URLs simultaneously for maximum performance
-- **CLI Support**: Command-line interface with multiple options via `clap`
-- **Configuration Files**: Define URLs and selectors in TOML config files
-- **Enhanced Error Handling**: Clear error messages with `anyhow`
-- **File Output**: Save scraped data to JSON files with timestamps
-- **Comprehensive Extraction**:
-  - Page titles
-  - Content paragraphs
-  - Links (text + href)
-  - Images (alt + src)
-  - Metadata (counts and statistics)
-- **Verbose Mode**: Optional detailed logging
-- **Flexible Selectors**: Customize CSS selectors for any website structure
-- **Smart URL Handling**: Automatically converts relative URLs to absolute
+- 🤖 **Automatic Selector Detection** - Scrape any website without manual configuration
+- 🌐 **Modern Web Interface** - Beautiful, intuitive dashboard accessible via browser
+- 🔌 **RESTful API** - Complete API for integration into other applications
+- 🔄 **Smart Pagination** - Automatically follows "Next" links across multiple pages
+- ⚡ **Async & Concurrent** - Fast, non-blocking operations powered by Tokio
+- 🛡️ **Polite Scraping** - Configurable rate limiting and user agent rotation
+- 📊 **Rich Data Extraction**:
+  - Titles and headings
+  - Content paragraphs and articles
+  - Links (with external/internal detection)
+  - Images with metadata
+  - Page metadata and SEO data
+- 🐳 **Docker Support** - Ready for containerized deployment
+- 💻 **Tauri Ready** - Can be wrapped as a cross-platform desktop app
+- 📦 **Library Mode** - Use as a Rust crate in your own projects
+- 🎨 **Clean Architecture** - Well-organized, maintainable code structure
 
 ## Installation
 
